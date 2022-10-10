@@ -1,0 +1,34 @@
+Each client runs the simulation.
+
+Rollback can be performed on the last 10 game states.
+
+Clients also perform prediction on their movements.
+
+The server timestamps commands with an allowance from the client. 
+Clients may specify when a command was made up to a limit based on their ping to the server + some allowance for variance.
+Otherwise the command will be timestamped as the minimal tick + allowance for each client.
+
+Clients will assume the timestamp of their own commands will be accepted by the server and will updated their simulation accordingly, only if the server
+disagrees will a rollback for it's own commands be triggered
+
+When a client receives a command it will rollback the local simulation and resimulate from the tick of the provided command.
+Locally controlled units will have their position updated based on the local interpolation + what is received from the server.
+The amount of local interpolation should be minimised so that it never grows beyond a specified number of ticks of the commands received from the server.
+
+Time            1   2   3   4   5   6   7   8   9   10  11  12  13  14
+
+2 tick ping
+Client 1            C1              C1  C12
+                        \       /       /
+                            \/       /
+Server                      C1  C12
+                              \ /   -   -
+                        -   /   -   -   \   \
+Client 2            C12                 C1  C12
+3 tick ping
+
+On Tick 6 client 1 receives it's own command, no rollback is required as it already predicted it's own command on tick 2, on tick 7 it receives a foriegn command
+and rolls back the simulation to tick 2 and replays the game from there.
+
+On Tick 8 client 2 receives a forieng command, it rolls back and includes the tentative C12 command as part of the rolback, when it receives C12 it checks the
+timestamp against the predicted command time, as it doesn't differ it does not need to rollback again. 
